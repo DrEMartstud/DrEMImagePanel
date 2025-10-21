@@ -1,8 +1,8 @@
 {
   "name": "drem-image-panel",
   "displayName": "DREM Image Panel",
-  "description": "Simple image panel for VS Code",
-  "version": "0.0.1",
+  "description": "Clean image viewer with Status Bar, Activity Bar and Explorer integration",
+  "version": "1.1.0",
   "publisher": "DrEMartstud",
   "engines": {
     "vscode": "^1.105.0"
@@ -13,8 +13,10 @@
   ],
   "keywords": [
     "image",
+    "gif",
+    "viewer",
     "panel",
-    "viewer"
+    "explorer"
   ],
   "icon": "icon.png",
   "repository": {
@@ -22,35 +24,62 @@
     "url": "https://github.com/DrEMartstud/DrEMImagePanel"
   },
   "activationEvents": [
-    "onCommand:drem-image-panel.showImage"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "drem-image-panel.showImage",
-        "title": "Show Image Panel",
+        "command": "drem-image-panel.openImagePanel",
+        "title": "Open Image Panel",
         "category": "DREM Image Panel"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "drem-image-settings",
+          "title": "DREM Image Settings",
+          "icon": "$(settings-gear)"
+        }
+      ]
+    },
+    "views": {
+      "drem-image-settings": [
+        {
+          "id": "drem-image-config",
+          "name": "Image Configuration",
+          "type": "webview"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "drem-image-explorer",
+          "name": "DREM Image",
+          "icon": "$(file-media)",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DREM Image Panel",
+      "properties": {
+        "dremImagePanel.imagePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to image file or URL"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
     "@types/vscode": "^1.105.0",
-    "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "eslint": "^9.36.0",
-    "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript": "^5.9.3"
   }
 }
