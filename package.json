@@ -2,7 +2,7 @@
   "name": "drem-image-panel",
   "displayName": "DREM Image Panel",
   "description": "Clean image viewer with Status Bar, Activity Bar and Explorer integration",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "DrEMartstud",
   "engines": {
     "vscode": "^1.105.0"

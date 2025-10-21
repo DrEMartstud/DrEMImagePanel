@@ -27,10 +27,11 @@ export function activate(context: vscode.ExtensionContext) {
         settingsViewProvider
     );
 
-    // Зарегистрировать тот же провайдер для вкладки в Explorer (contributes.views -> explorer)
+    // Зарегистрировать провайдер для вкладки в Explorer — показываем картинку в explorer view
+    const explorerImageProvider = new ExplorerImageViewProvider(context.extensionUri);
     const explorerViewRegistration = vscode.window.registerWebviewViewProvider(
         'drem-image-explorer',
-        settingsViewProvider
+        explorerImageProvider
     );
 
     context.subscriptions.push(
@@ -386,5 +387,86 @@ export function deactivate() {
     }
     if (statusBarItem) {
         statusBarItem.dispose();
+    }
+}
+
+// Класс для отображения изображения в виде вкладки в Explorer
+// Провайдер для отображения картинки в view Explorer (contributes.views -> explorer)
+class ExplorerImageViewProvider implements vscode.WebviewViewProvider {
+    constructor(private readonly _extensionUri: vscode.Uri) {}
+
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _context: vscode.WebviewViewResolveContext,
+        _token?: vscode.CancellationToken
+    ) {
+        // Разрешаем доступ к локальным ресурсам (extension + workspace)
+        webviewView.webview.options = {
+            ...webviewView.webview.options,
+            enableScripts: false,
+            localResourceRoots: [
+                this._extensionUri,
+                ...(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.map(f => f.uri) : [])
+            ]
+        };
+
+        const config = vscode.workspace.getConfiguration('dremImagePanel');
+        const imagePath = config.get('imagePath') as string;
+
+        let imageHtml: string;
+        const defaultImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+        if (imagePath && isValidImageSource(imagePath)) {
+            if (imagePath.startsWith('http')) {
+                imageHtml = `<img src="${imagePath}" alt="DREM Image" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+            } else {
+                try {
+                    const imageUri = vscode.Uri.file(imagePath);
+                    // Добавляем папку изображения в локальные корни (переопределяем options)
+                    const imageFolder = vscode.Uri.file(path.dirname(imagePath));
+                    const existingRoots = webviewView.webview.options.localResourceRoots || [];
+                    const alreadyHas = existingRoots.some(u => u.toString() === imageFolder.toString());
+                    const newRoots = alreadyHas ? existingRoots : [...existingRoots, imageFolder];
+
+                    webviewView.webview.options = {
+                        ...webviewView.webview.options,
+                        localResourceRoots: newRoots
+                    };
+
+                    const webviewUri = webviewView.webview.asWebviewUri(imageUri);
+                    imageHtml = `<img src="${webviewUri}" alt="DREM Image" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                } catch {
+                    imageHtml = `<img src="${defaultImage}" alt="Default Image" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                }
+            }
+        } else {
+            imageHtml = `<img src="${defaultImage}" alt="Default Image" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+        }
+
+        webviewView.webview.html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { margin:0; padding:0; display:flex; align-items:center; justify-content:center; height:100vh; background:var(--vscode-editor-background); }
+                </style>
+            </head>
+            <body>
+                ${imageHtml}
+            </body>
+            </html>
+        `;
+
+        // Обновление при изменении конфигурации
+        const disposable = vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('dremImagePanel.imagePath')) {
+                // повторно отрисовать
+                this.resolveWebviewView(webviewView, _context, _token);
+            }
+        });
+
+        webviewView.onDidDispose(() => disposable.dispose());
     }
 }
