@@ -1,21 +1,36 @@
 {
   "name": "drem-image-panel",
-  "displayName": "image-panel",
-  "description": "Simple image panel",
+  "displayName": "DREM Image Panel",
+  "description": "Simple image panel for VS Code",
   "version": "0.0.1",
+  "publisher": "DrEMartstud",
   "engines": {
     "vscode": "^1.105.0"
   },
   "categories": [
+    "Visualization",
     "Other"
   ],
-  "activationEvents": [],
+  "keywords": [
+    "image",
+    "panel",
+    "viewer"
+  ],
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DrEMartstud/DrEMImagePanel"
+  },
+  "activationEvents": [
+    "onCommand:drem-image-panel.showImage"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "drem-image-panel.showImage",
-        "title": "Show Image Panel"
+        "title": "Show Image Panel",
+        "category": "DREM Image Panel"
       }
     ]
   },
