@@ -182,6 +182,10 @@ class SettingsViewProvider implements vscode.WebviewViewProvider {
                 case 'selectImage':
                     await this.selectImageFile();
                     break;
+                case 'showUrlInput':
+                    // Отправляем сообщение обратно в webview для показа input поля
+                    this._showUrlInputInWebview();
+                    break;
                 case 'updateImagePath':
                     await this.updateImagePath(data.value);
                     break;
@@ -258,6 +262,26 @@ class SettingsViewProvider implements vscode.WebviewViewProvider {
                         background-color: var(--vscode-button-secondaryBackground);
                         color: var(--vscode-button-secondaryForeground);
                     }
+                    .input-group {
+                        margin: 10px 0;
+                        display: none;
+                    }
+                    .input-group.visible {
+                        display: block;
+                    }
+                    input {
+                        width: 100%;
+                        padding: 8px;
+                        margin-bottom: 8px;
+                        background: var(--vscode-input-background);
+                        color: var(--vscode-input-foreground);
+                        border: 1px solid var(--vscode-input-border);
+                        border-radius: 2px;
+                    }
+                    .input-buttons {
+                        display: flex;
+                        gap: 8px;
+                    }
                     .status {
                         font-size: 12px;
                         margin: 5px 0;
@@ -299,6 +323,14 @@ class SettingsViewProvider implements vscode.WebviewViewProvider {
                     <button onclick="selectImage()">Select Local Image</button>
                     <button onclick="showUrlInput()">Enter Image URL</button>
                     ${hasImage ? '<button class="secondary" onclick="clearImagePath()">Clear Image Path</button>' : ''}
+                    
+                    <div class="input-group" id="urlInputGroup">
+                        <input type="text" id="imageUrlInput" placeholder="https://example.com/image.jpg">
+                        <div class="input-buttons">
+                            <button onclick="setImageUrl()">Set URL</button>
+                            <button class="secondary" onclick="hideUrlInput()">Cancel</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="section">
@@ -320,20 +352,47 @@ class SettingsViewProvider implements vscode.WebviewViewProvider {
                     }
 
                     function showUrlInput() {
-                        const url = prompt('Enter image URL (http/https):');
+                        vscode.postMessage({ type: 'showUrlInput' });
+                    }
+
+                    function hideUrlInput() {
+                        document.getElementById('urlInputGroup').classList.remove('visible');
+                        document.getElementById('imageUrlInput').value = '';
+                    }
+
+                    function setImageUrl() {
+                        const url = document.getElementById('imageUrlInput').value.trim();
                         if (url) {
                             vscode.postMessage({ type: 'updateImagePath', value: url });
+                            hideUrlInput();
                         }
                     }
 
                     function clearImagePath() {
-                        if (confirm('Clear current image path?')) {
-                            vscode.postMessage({ type: 'clearImagePath' });
-                        }
+                        vscode.postMessage({ type: 'clearImagePath' });
                     }
+
+                    // Обработка сообщений от extension
+                    window.addEventListener('message', event => {
+                        const message = event.data;
+                        switch (message.type) {
+                            case 'showUrlInput':
+                                document.getElementById('urlInputGroup').classList.add('visible');
+                                document.getElementById('imageUrlInput').focus();
+                                break;
+                        }
+                    });
                 </script>
             </body>
             </html>`;
+    }
+
+    private _showUrlInputInWebview() {
+        if (this._view) {
+            this._view.webview.postMessage({
+                type: 'showUrlInput'
+            });
+        }
     }
 
     private async selectImageFile() {
